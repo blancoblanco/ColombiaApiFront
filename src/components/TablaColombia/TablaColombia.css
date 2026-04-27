@@ -443,3 +443,17 @@
     padding: 8px 10px;
   }
 }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
+  border-top: 1px solid #ecf0f1;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.footer p {
+  margin: 0;
+}
