@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const AUTH_URL = 'http://localhost:8080/auth';
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8080/auth';
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
