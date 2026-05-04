@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   getDepartamentos,
   getMunicipios,
@@ -29,7 +30,8 @@ import {
 } from '../../constants/enums';
 import './TablaColombia.css';
 
-function TablaColombia({ isAdmin = false }) {
+function TablaColombia({ isAdmin = false, pathname = '/' }) {
+  const navigate = useNavigate();
   const [departamentos, setDepartamentos] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +54,24 @@ function TablaColombia({ isAdmin = false }) {
     departamento: null
   });
 
-  // Estados para pestañas
-  const [pestañaActiva, setPestañaActiva] = useState('municipios');
+  // Derivar pestaña activa del pathname
+  const getPestañaFromPath = (path) => {
+    if (path.includes('municipios')) return 'municipios';
+    if (path.includes('microzonificaciones')) return 'microzonificaciones';
+    return 'departamentos';
+  };
+  
+  const pestañaActiva = getPestañaFromPath(pathname);
+
+  // Función para cambiar de pestaña usando routing
+  const cambiarPestaña = (pestaña) => {
+    const rutas = {
+      'departamentos': '/departamentos',
+      'municipios': '/municipios',
+      'microzonificaciones': '/microzonificaciones'
+    };
+    navigate(rutas[pestaña]);
+  };
 
   // Estados para Microzonificaciones
   const [microzonificaciones, setMicrozonificaciones] = useState([]);
@@ -80,6 +98,7 @@ function TablaColombia({ isAdmin = false }) {
     tc: 0.6,
     tl: 2.0,
     a0: 0.5,
+    t0: null,
     microzonificacion: null
   });
 
@@ -325,8 +344,8 @@ function TablaColombia({ isAdmin = false }) {
 
   const handleInputChangeZona = (e) => {
     const { name, value } = e.target;
-    if (['fa', 'fv', 'tc', 'tl', 'a0'].includes(name)) {
-      setFormDataZona(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    if (['fa', 'fv', 'tc', 'tl', 'a0', 't0'].includes(name)) {
+      setFormDataZona(prev => ({ ...prev, [name]: value === '' ? null : parseFloat(value) }));
     } else {
       setFormDataZona(prev => ({ ...prev, [name]: value }));
     }
@@ -342,6 +361,7 @@ function TablaColombia({ isAdmin = false }) {
         tc: formDataZona.tc,
         tl: formDataZona.tl,
         a0: formDataZona.a0,
+        t0: formDataZona.t0,
         microzonificacion: microParentId ? { idMicrozonificacion: microParentId } : null
       };
       
@@ -490,20 +510,20 @@ function TablaColombia({ isAdmin = false }) {
       <div className="tabs-container">
         <button 
           className={`tab-button ${pestañaActiva === 'departamentos' ? 'active' : ''}`}
-          onClick={() => setPestañaActiva('departamentos')}
+          onClick={() => cambiarPestaña('departamentos')}
         >
           Departamentos
         </button>
         <button 
           className={`tab-button ${pestañaActiva === 'municipios' ? 'active' : ''}`}
-          onClick={() => setPestañaActiva('municipios')}
+          onClick={() => cambiarPestaña('municipios')}
         >
           Municipios
         </button>
         <button 
           className={`tab-button ${pestañaActiva === 'microzonificaciones' ? 'active' : ''}`}
           onClick={() => {
-            setPestañaActiva('microzonificaciones');
+            cambiarPestaña('microzonificaciones');
             loadMicrozonificaciones();
           }}
         >
@@ -681,6 +701,7 @@ function TablaColombia({ isAdmin = false }) {
                                   <th>Fv</th>
                                   <th>Tc</th>
                                   <th>Tl</th>
+                                  <th>T0</th>
                                   <th>A0</th>
                                   <th>Acciones</th>
                                 </tr>
@@ -688,7 +709,7 @@ function TablaColombia({ isAdmin = false }) {
                               <tbody>
                                 {(!zonasDeMicro[micro.idMicrozonificacion] || zonasDeMicro[micro.idMicrozonificacion].length === 0) ? (
                                   <tr>
-                                    <td colSpan="7" className="empty-message">No hay zonas definidas</td>
+                                    <td colSpan="8" className="empty-message">No hay zonas definidas</td>
                                   </tr>
                                 ) : (
                                   zonasDeMicro[micro.idMicrozonificacion].map(zona => (
@@ -698,6 +719,7 @@ function TablaColombia({ isAdmin = false }) {
                                       <td>{zona.fv != null ? zona.fv : '-'}</td>
                                       <td>{zona.tc != null ? zona.tc : '-'}</td>
                                       <td>{zona.tl != null ? zona.tl : '-'}</td>
+                                      <td>{zona.t0 != null ? zona.t0 : '-'}</td>
                                       <td>{zona.a0 != null ? zona.a0 : '-'}</td>
                                       <td className="actions">
                                         {isAdmin && (
@@ -916,6 +938,19 @@ function TablaColombia({ isAdmin = false }) {
                   min={COEFICIENTE_ZONA.MIN} 
                   max={COEFICIENTE_ZONA.MAX} 
                   step={COEFICIENTE_ZONA.STEP} 
+                />
+              </div>
+              <div className="form-group">
+                <label>T0 (opcional)</label>
+                <input 
+                  type="number" 
+                  name="t0" 
+                  value={formDataZona.t0 !== null ? String(formDataZona.t0) : ''} 
+                  onChange={handleInputChangeZona} 
+                  min={COEFICIENTE_ZONA.MIN} 
+                  max={COEFICIENTE_ZONA.MAX} 
+                  step={COEFICIENTE_ZONA.STEP}
+                  placeholder="Solo para Tabla 5.1"
                 />
               </div>
               <div className="form-actions">

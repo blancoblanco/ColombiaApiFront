@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import TablaColombia from './components/TablaColombia/TablaColombia';
 import Login from './components/Login/Login';
 import { isAuthenticated, getUserName, logout } from './services/auth';
 import './App.css';
 
-function App() {
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = () => {
@@ -55,7 +57,7 @@ function App() {
       </div>
 
       {/* Las tablas siempre visibles */}
-      <TablaColombia isAdmin={isLoggedIn} />
+      <TablaColombia isAdmin={isLoggedIn} pathname={location.pathname} />
 
       {/* Modal de Login */}
       {showLoginModal && (
@@ -69,6 +71,19 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/departamentos" element={<AppContent />} />
+        <Route path="/municipios" element={<AppContent />} />
+        <Route path="/microzonificaciones" element={<AppContent />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
