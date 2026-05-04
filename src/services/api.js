@@ -38,4 +38,19 @@ export const createMunicipio = (municipio) => apiClient.post('/municipios', muni
 export const updateMunicipio = (id, municipio) => apiClient.put(`/municipios/${id}`, municipio);
 export const deleteMunicipio = (id) => apiClient.delete(`/municipios/${id}`);
 
+// Microzonificaciones
+export const getMicrozonificaciones = () => apiClient.get('/Microzonificacion');
+export const getMicrozonificacionById = (id) => apiClient.get(`/Microzonificacion/${id}`);
+export const getMicrozonificacionesByMunicipio = (idMunicipio) => apiClient.get(`/Microzonificacion/municipio/${idMunicipio}`);
+export const createMicrozonificacion = (microzonificacion) => apiClient.post('/Microzonificacion', microzonificacion);
+export const updateMicrozonificacion = (id, microzonificacion) => apiClient.put(`/Microzonificacion/${id}`, microzonificacion);
+export const deleteMicrozonificacion = (id) => apiClient.delete(`/Microzonificacion/${id}`);
+
+// Zonas
+export const getZonas = () => apiClient.get('/zona');
+export const getZonaById = (id) => apiClient.get(`/zona/${id}`);
+export const createZona = (zona) => apiClient.post('/zona', zona);
+export const updateZona = (id, zona) => apiClient.put(`/zona/${id}`, zona);
+export const deleteZona = (id) => apiClient.delete(`/zona/${id}`);
+
 export default apiClient;

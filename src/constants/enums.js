@@ -159,5 +159,32 @@ export const COEFICIENTE_AD_OPTIONS = [
   { value: 'AD_014', label: '0.14' }
 ];
 
+// Zona de respuesta sísmica
+export const ZONA_RESPUESTA_SISMICA_OPTIONS = [
+  { value: 'CERROS', label: 'Cerros' },
+  { value: 'PIEDEMONTE_A', label: 'Piedemonte A' },
+  { value: 'PIEDEMONTE_B', label: 'Piedemonte B' },
+  { value: 'PIEDEMONTE_C', label: 'Piedemonte C' },
+  { value: 'LACUSTRE_50', label: 'Lacustre 50' },
+  { value: 'LACUSTRE_100', label: 'Lacustre 100' },
+  { value: 'LACUSTRE_200', label: 'Lacustre 200' },
+  { value: 'LACUSTRE_300', label: 'Lacustre 300' },
+  { value: 'LACUSTRE_500', label: 'Lacustre 500' },
+  { value: 'LACUSTRE_ALUVIAL_200', label: 'Lacustre Aluvial 200' },
+  { value: 'LACUSTRE_ALUVIAL_300', label: 'Lacustre Aluvial 300' },
+  { value: 'ALUVIAL_50', label: 'Aluvial 50' },
+  { value: 'ALUVIAL_100', label: 'Aluvial 100' },
+  { value: 'ALUVIAL_200', label: 'Aluvial 200' },
+  { value: 'ALUVIAL_300', label: 'Aluvial 300' },
+  { value: 'DEPOSITO_LADERA', label: 'Depósito Ladera' }
+];
+
+// Coeficientes de zona (fa, fv, tc, tl, A0)
+export const COEFICIENTE_ZONA = {
+  MIN: 0,
+  MAX: 5,
+  STEP: 0.01
+};
+
 // API Base URL - usa variable de entorno (Vite)
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/apiCo/v1';
