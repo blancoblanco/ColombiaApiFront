@@ -206,20 +206,11 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       // Cargar todas las zonas y filtrar por micro
       try {
         const response = await getZonas();
-        console.log('=== LOG 1: Response de getZonas (toggleMicroExpandida) ===');
-        console.log('response:', response);
-        console.log('response.data:', response?.data);
-        
         const todasZonas = Array.isArray(response.data) ? response.data : [];
-        console.log('=== LOG 2: Todas las zonas ===');
-        console.log('todasZonas:', todasZonas);
-        console.log('todasZonas[0]:', todasZonas[0]);
         
         const zonasDeEstaMicro = todasZonas.filter(z => 
           z.microzonificacion && z.microzonificacion.idMicrozonificacion === microId
         );
-        console.log('=== LOG 3: Zonas filtradas para microId', microId, '===');
-        console.log('zonasDeEstaMicro:', zonasDeEstaMicro);
         
         setZonasDeMicro(prev => ({ ...prev, [microId]: zonasDeEstaMicro }));
       } catch (err) {
@@ -373,18 +364,10 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       // Recargar las zonas de la micro expandida
       if (microExpandida) {
         const response = await getZonas();
-        console.log('=== LOG: Zonas después de crear/actualizar (handleSubmitZona) ===');
-        console.log('response.data:', response?.data);
-        
         const todasZonas = Array.isArray(response.data) ? response.data : [];
-        console.log('todasZonas:', todasZonas);
-        
         const zonasActualizadas = todasZonas.filter(z => 
           z.microzonificacion && z.microzonificacion.idMicrozonificacion === microExpandida
         );
-        console.log('zonasActualizadas:', zonasActualizadas);
-        console.log('primer zona actualizada:', zonasActualizadas[0]);
-        
         setZonasDeMicro(prev => ({ ...prev, [microExpandida]: zonasActualizadas }));
       }
     } catch (err) {
