@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   getDepartamentos,
   getMunicipios,
@@ -30,8 +29,8 @@ import {
 } from '../../constants/enums';
 import './TablaColombia.css';
 
-function TablaColombia({ isAdmin = false, pathname = '/' }) {
-  const navigate = useNavigate();
+function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChange }) {
+  const pestañaActiva = activeTab;
   const [departamentos, setDepartamentos] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,23 +53,11 @@ function TablaColombia({ isAdmin = false, pathname = '/' }) {
     departamento: null
   });
 
-  // Derivar pestaña activa del pathname
-  const getPestañaFromPath = (path) => {
-    if (path.includes('municipios')) return 'municipios';
-    if (path.includes('microzonificaciones')) return 'microzonificaciones';
-    return 'departamentos';
-  };
-  
-  const pestañaActiva = getPestañaFromPath(pathname);
-
-  // Función para cambiar de pestaña usando routing
+  // Función para cambiar de pestaña usando estado local
   const cambiarPestaña = (pestaña) => {
-    const rutas = {
-      'departamentos': '/departamentos',
-      'municipios': '/municipios',
-      'microzonificaciones': '/microzonificaciones'
-    };
-    navigate(rutas[pestaña]);
+    if (onTabChange) {
+      onTabChange(pestaña);
+    }
   };
 
   // Estados para Microzonificaciones

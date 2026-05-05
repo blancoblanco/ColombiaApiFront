@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import TablaColombia from './components/TablaColombia/TablaColombia';
 import Login from './components/Login/Login';
 import { isAuthenticated, getUserName, logout } from './services/auth';
 import './App.css';
 
-function AppContent() {
+function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('departamentos');
 
   useEffect(() => {
     const checkAuth = () => {
@@ -38,9 +37,12 @@ function AppContent() {
     setUserName('');
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
   return (
     <div className="app-container">
-      {/* Botón de Login/Logout en la esquina */}
       <div className="auth-corner">
         {isLoggedIn ? (
           <div className="user-menu">
@@ -56,10 +58,8 @@ function AppContent() {
         )}
       </div>
 
-      {/* Las tablas siempre visibles */}
-      <TablaColombia isAdmin={isLoggedIn} pathname={location.pathname} />
+      <TablaColombia isAdmin={isLoggedIn} activeTab={activeTab} onTabChange={handleTabChange} />
 
-      {/* Modal de Login */}
       {showLoginModal && (
         <div className="login-modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="login-modal-content" onClick={e => e.stopPropagation()}>
@@ -71,19 +71,6 @@ function AppContent() {
         </div>
       )}
     </div>
-  );
-}
-
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<AppContent />} />
-        <Route path="/departamentos" element={<AppContent />} />
-        <Route path="/municipios" element={<AppContent />} />
-        <Route path="/microzonificaciones" element={<AppContent />} />
-      </Routes>
-    </BrowserRouter>
   );
 }
 
