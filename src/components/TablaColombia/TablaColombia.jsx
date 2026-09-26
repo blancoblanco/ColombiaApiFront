@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   getDepartamentos,
   getMunicipios,
@@ -39,6 +39,8 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
   const [filtroMunNombre, setFiltroMunNombre] = useState('');
   const [filtroMunDane, setFiltroMunDane] = useState('');
   const [filtroMunAmenaza, setFiltroMunAmenaza] = useState('');
+  const [paginaMunicipios, setPaginaMunicipios] = useState(1);
+  const MUNICIPIOS_POR_PAGINA = 50;
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState('');
   const [editingItem, setEditingItem] = useState(null);
@@ -89,10 +91,6 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     microzonificacion: null
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -105,12 +103,19 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       setMunicipios(munData);
       setTodosLosMunicipios(munData); // Guardar todos los municipios
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Fetch al montar: es el caso de uso canonico de un efecto (sincronizar
+    // con un sistema externo). set-state-in-effect no aplica aqui.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData();
+  }, []);
 
   const handleSearchDepartamento = async (e) => {
     e.preventDefault();
@@ -128,6 +133,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     e.preventDefault();
     try {
       setLoading(true);
+      setPaginaMunicipios(1);
       if (filtroMunDane.trim() !== '') {
         const r = await searchMunicipiosByCodigoDane(filtroMunDane);
         setMunicipios(r.data ? [r.data] : []);
@@ -150,6 +156,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     setFiltroMunNombre('');
     setFiltroMunDane('');
     setFiltroMunAmenaza('');
+    setPaginaMunicipios(1);
     await loadData();
   };
 
@@ -198,24 +205,41 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     }
   };
 
+  // El backend solo expone GET /zona (listado completo), sin filtro por
+  // microzonificacion. Antes se pedia ese listado completo en CADA expansion,
+  // borrado y guardado de zona. Ahora se descarga una sola vez y se filtra en
+  // memoria: expandir N micros pasa de N requests a 1.
+  const zonasCacheRef = useRef(null);
+
+  const obtenerTodasLasZonas = async ({ force = false } = {}) => {
+    if (!force && zonasCacheRef.current) return zonasCacheRef.current;
+    const response = await getZonas();
+    const zonas = Array.isArray(response?.data) ? response.data : [];
+    zonasCacheRef.current = zonas;
+    return zonas;
+  };
+
+  const fetchZonasDeMicro = async (microId, { force = false } = {}) => {
+    if (!microId) return [];
+    if (!force && zonasDeMicro[microId]) return zonasDeMicro[microId];
+
+    const todas = await obtenerTodasLasZonas({ force });
+    const zonas = todas.filter(z => z?.microzonificacion?.idMicrozonificacion === microId);
+    setZonasDeMicro(prev => ({ ...prev, [microId]: zonas }));
+    return zonas;
+  };
+
   const toggleMicroExpandida = async (microId) => {
     if (microExpandida === microId) {
       setMicroExpandida(null);
-    } else {
-      setMicroExpandida(microId);
-      // Cargar todas las zonas y filtrar por micro
-      try {
-        const response = await getZonas();
-        const todasZonas = Array.isArray(response.data) ? response.data : [];
-        
-        const zonasDeEstaMicro = todasZonas.filter(z => 
-          z.microzonificacion && z.microzonificacion.idMicrozonificacion === microId
-        );
-        
-        setZonasDeMicro(prev => ({ ...prev, [microId]: zonasDeEstaMicro }));
-      } catch (err) {
-        console.error('Error al cargar zonas:', err);
-      }
+      return;
+    }
+
+    setMicroExpandida(microId);
+    try {
+      await fetchZonasDeMicro(microId);
+    } catch (err) {
+      console.error('Error al cargar zonas:', err);
     }
   };
 
@@ -271,14 +295,10 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
   };
 
   const handleDeleteMicro = async (micro) => {
-    // Verificar si tiene zonas asociadas
+    // Verificar si tiene zonas asociadas (solo las de esta micro, no todas)
     try {
-      const response = await getZonas();
-      const todasZonas = Array.isArray(response.data) ? response.data : [];
-      const zonasAsociadas = todasZonas.filter(z => 
-        z.microzonificacion && z.microzonificacion.idMicrozonificacion === micro.idMicrozonificacion
-      );
-      
+      const zonasAsociadas = await fetchZonasDeMicro(micro.idMicrozonificacion, { force: true });
+
       if (zonasAsociadas.length > 0) {
         alert(`No se puede eliminar. Esta microzonificación tiene ${zonasAsociadas.length} zona(s) asociada(s). Elimine primero las zonas.`);
         return;
@@ -290,6 +310,11 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     if (!confirm(`¿Eliminar la microzonificación "${micro.nombre}"?`)) return;
     try {
       await deleteMicrozonificacion(micro.idMicrozonificacion);
+      setZonasDeMicro(prev => {
+        const next = { ...prev };
+        delete next[micro.idMicrozonificacion];
+        return next;
+      });
       if (municipioSeleccionado) {
         await loadMicrozonificaciones(municipioSeleccionado.idMunicipio);
       } else {
@@ -311,6 +336,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       tc: 0.6,
       tl: 2.0,
       a0: 0.5,
+      t0: null,
       microzonificacion: null
     });
     setShowZonaModal(true);
@@ -326,6 +352,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       tc: zona.tc ?? 0.6,
       tl: zona.tl ?? 2.0,
       a0: zona.a0 ?? 0.5,
+      t0: zona.t0 ?? null,
       microzonificacion: zona.microzonificacion || null
     });
     setShowZonaModal(true);
@@ -361,14 +388,9 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       }
       
       setShowZonaModal(false);
-      // Recargar las zonas de la micro expandida
-      if (microExpandida) {
-        const response = await getZonas();
-        const todasZonas = Array.isArray(response.data) ? response.data : [];
-        const zonasActualizadas = todasZonas.filter(z => 
-          z.microzonificacion && z.microzonificacion.idMicrozonificacion === microExpandida
-        );
-        setZonasDeMicro(prev => ({ ...prev, [microExpandida]: zonasActualizadas }));
+      // Refrescar solo las zonas de la micro afectada
+      if (microParentId) {
+        await fetchZonasDeMicro(microParentId, { force: true });
       }
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
@@ -379,13 +401,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
     if (!confirm(`¿Eliminar la zona "${zona.zonaRespuestaSismica}"?`)) return;
     try {
       await deleteZona(zona.idZona);
-      // Recargar las zonas
-      const response = await getZonas();
-      const todasZonas = Array.isArray(response.data) ? response.data : [];
-      const zonasActualizadas = todasZonas.filter(z => 
-        z.microzonificacion && z.microzonificacion.idMicrozonificacion === microId
-      );
-      setZonasDeMicro(prev => ({ ...prev, [microId]: zonasActualizadas }));
+      await fetchZonasDeMicro(microId, { force: true });
     } catch (err) {
       alert('Error: ' + (err.response?.data?.message || err.message));
     }
@@ -393,9 +409,11 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    // Convertir coeficientes a número
+    // Convertir coeficientes a numero. Antes `parseFloat(value) || 0`
+    // convertia un campo vacio en 0, perdiendo el valor real.
     if (['aa', 'av', 'ae', 'ad'].includes(name)) {
-      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      const num = parseFloat(value);
+      setFormData(prev => ({ ...prev, [name]: value === '' || Number.isNaN(num) ? 0 : num }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -458,6 +476,34 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
       loadData();
     } catch (err) { alert('Error: ' + (err.response?.data?.message || err.message)); }
   };
+
+  // Solo se renderiza la pagina visible. Sin esto se pintaban los ~1122
+  // municipios de una vez (11k+ nodos DOM) en cada cambio de estado.
+  const totalPaginasMunicipios = Math.max(1, Math.ceil(municipios.length / MUNICIPIOS_POR_PAGINA));
+  const paginaMunicipiosActual = Math.min(paginaMunicipios, totalPaginasMunicipios);
+  const municipiosPaginados = useMemo(() => {
+    const inicio = (paginaMunicipiosActual - 1) * MUNICIPIOS_POR_PAGINA;
+    return municipios.slice(inicio, inicio + MUNICIPIOS_POR_PAGINA);
+  }, [municipios, paginaMunicipiosActual]);
+
+  // Conteo de municipios por departamento. Antes se recalculaba un filter()
+  // por cada fila en cada render: N departamentos x M municipios.
+  const municipiosPorDepartamento = useMemo(() => {
+    const conteo = new Map();
+    for (const m of municipios) {
+      const id = m?.departamento?.idDepartamento;
+      if (id == null) continue;
+      conteo.set(id, (conteo.get(id) || 0) + 1);
+    }
+    return conteo;
+  }, [municipios]);
+
+  // Lookup value -> label. Antes hacia un .find() linear por cada zona renderizada.
+  const zonaLabelPorValor = useMemo(() => {
+    const map = new Map();
+    for (const o of ZONA_RESPUESTA_SISMICA_OPTIONS) map.set(o.value, o.label);
+    return map;
+  }, []);
 
   if (loading) return (
     <div className="loading-container">
@@ -538,7 +584,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
                   <tr key={dept.idDepartamento}>
                     <td>{dept.idDepartamento}</td>
                     <td>{dept.nombre}</td>
-                    <td>{(municipios || []).filter(m => m.departamento && m.departamento.idDepartamento === dept.idDepartamento).length}</td>
+                    <td>{municipiosPorDepartamento.get(dept.idDepartamento) || 0}</td>
                     <td className="actions">
                       {isAdmin && (
                         <>
@@ -574,7 +620,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
             <thead><tr><th>ID</th><th>Nombre</th><th>Codigo Dane</th><th>Departamento</th><th>Amenaza</th><th>Aa</th><th>Av</th><th>Ae</th><th>Ad</th><th>Acciones</th></tr></thead>
             <tbody>
               {(!municipios || municipios.length === 0) ? <tr><td colSpan="10" className="empty-message">No hay municipios</td></tr> :
-                municipios.map(mun => (
+                municipiosPaginados.map(mun => (
                   <tr key={mun.idMunicipio}>
                     <td>{mun.idMunicipio}</td>
                     <td>{mun.nombre}</td>
@@ -598,6 +644,29 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
             </tbody>
           </table>
         </div>
+        {totalPaginasMunicipios > 1 && (
+          <div className="pagination">
+            <button
+              type="button"
+              className="btn btn-cancel"
+              disabled={paginaMunicipiosActual <= 1}
+              onClick={() => setPaginaMunicipios(p => Math.max(1, p - 1))}
+            >
+              Anterior
+            </button>
+            <span className="pagination-info">
+              Pagina {paginaMunicipiosActual} de {totalPaginasMunicipios}
+            </span>
+            <button
+              type="button"
+              className="btn btn-cancel"
+              disabled={paginaMunicipiosActual >= totalPaginasMunicipios}
+              onClick={() => setPaginaMunicipios(p => Math.min(totalPaginasMunicipios, p + 1))}
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
       </section>
       )}
 
@@ -703,7 +772,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
                                 ) : (
                                   zonasDeMicro[micro.idMicrozonificacion].map(zona => (
                                     <tr key={zona.idZona}>
-                                      <td>{ZONA_RESPUESTA_SISMICA_OPTIONS.find(o => o.value === zona.zonaRespuestaSismica)?.label || zona.zonaRespuestaSismica}</td>
+                                      <td>{zonaLabelPorValor.get(zona.zonaRespuestaSismica) || zona.zonaRespuestaSismica}</td>
                                       <td>{zona.fa != null ? zona.fa : '-'}</td>
                                       <td>{zona.fv != null ? zona.fv : '-'}</td>
                                       <td>{zona.tc != null ? zona.tc : '-'}</td>
