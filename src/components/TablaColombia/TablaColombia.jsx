@@ -524,9 +524,9 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
 
       <div className="header">
         <div className="header-title">
-          <h1>Appendice A-4 - Codigo NSR-10</h1>
+          <h1>API NSR-10 Colombia</h1>
           <h2>Departamentos y Municipios</h2>
-          <p className="header-subtitle">Parametros de diseno sismico para municipios de Colombia</p>
+          <p className="header-subtitle">Parámetros de diseño sísmico del Apéndice A-4 para municipios de Colombia</p>
         </div>
         <div className="header-buttons">
           {isAdmin && pestañaActiva === 'departamentos' && (
@@ -617,7 +617,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
         </form>
         <div className="table-wrapper">
           <table className="data-table">
-            <thead><tr><th>ID</th><th>Nombre</th><th>Codigo Dane</th><th>Departamento</th><th>Amenaza</th><th>Aa</th><th>Av</th><th>Ae</th><th>Ad</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Código DANE</th><th>Departamento</th><th>Amenaza</th><th>Aa</th><th>Av</th><th>Ae</th><th>Ad</th><th>Acciones</th></tr></thead>
             <tbody>
               {(!municipios || municipios.length === 0) ? <tr><td colSpan="10" className="empty-message">No hay municipios</td></tr> :
                 municipiosPaginados.map(mun => (
@@ -655,7 +655,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
               Anterior
             </button>
             <span className="pagination-info">
-              Pagina {paginaMunicipiosActual} de {totalPaginasMunicipios}
+              Página {paginaMunicipiosActual} de {totalPaginasMunicipios}
             </span>
             <button
               type="button"
@@ -700,7 +700,7 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
                 <th>ID</th>
                 <th>Nombre</th>
                 <th>Municipio</th>
-                <th>Codigo Dane</th>
+                <th>Código DANE</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -820,8 +820,8 @@ function TablaColombia({ isAdmin = false, activeTab = 'departamentos', onTabChan
               {modalType === 'municipio' && (
                 <>
                   <div className="form-group">
-                    <label>Codigo Dane</label>
-                    <input type="text" name="codigoDane" value={formData.codigoDane} onChange={handleInputChange} placeholder="Ingrese el codigo Dane" />
+                    <label>Código DANE</label>
+                    <input type="text" name="codigoDane" value={formData.codigoDane} onChange={handleInputChange} placeholder="Ingrese el código DANE" />
                   </div>
                   <div className="form-group">
                     <label>Departamento *</label>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jumatabacolombia.onrender.com/sitemap.xml
